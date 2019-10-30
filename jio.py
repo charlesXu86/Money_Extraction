@@ -122,6 +122,7 @@ def get_properties_and_values(sentence):
     """
     quick_get_disabled = False
     pv_dict = {}
+    vs = 0
     # search = re.search(pay_pattern, sentence)
     # if search:
     #     quick_get_disabled = True
@@ -131,7 +132,7 @@ def get_properties_and_values(sentence):
     #     return pv_dict
 
     #values = re.findall(r'(人民币)?([1-9]\d*\.\d*|0\.\d*[1-9]\d*|[1-9]\d*)(万?)(千?)(亿?)(美?日?元)', sentence)
-    values = re.findall(r'(人民币)?([1-9]\d*\.\d*|0\.\d*[1-9]\d*|[1-9]\d*)(万?)(千?)(亿?)(美?日?元?)', sentence) #改
+    values = re.findall(r'(人民币)?([1-9]\d*\.\d*|0\.\d*[1-9]\d*|[1-9]\d*)(万?)(千?)(百?)(亿?)(美?日?元?)', sentence) #改
 
     last_index = 0
     for j in range(len(values)):
@@ -141,10 +142,15 @@ def get_properties_and_values(sentence):
                 v = values[j][1]
                 # v3 = values[j][3]
                 # v4 = values[j][4]
-                if values[j][2] == '万':
-                    v = v + '万'
                 if values[j][2] == '亿':
                     v += '00000000'
+                if values[j][2] == '万':
+                    v += '0000'
+                if values[j][3] == '千':
+                    v += '000'
+                if values[j][4] == '百':
+                    v += '00'
+                vs += int(v)
                 vrb_index = 0
                 pr_index_list = []
                 for k in range(1, i - last_index + 1):  # i是金额数字的下标
@@ -206,9 +212,16 @@ def wash_data(string):
     string = re.sub('\[[^\[\]]*\]', '', string)  # 去除中括号括起来的部分
     string = re.sub('([1-9]\d*)，(?=\d)', '\\1', string)  # 去除数字之间的的逗号
     string = re.sub('(\d)(O|o|〇)(?=\d)', '\\g<1>0', string)  # 替换数字间写错的零成：0
+
+    # 做数字拼接， 十七八， 二十多
+    # string = re.sub()
+    string = re.sub('[一二两三四五六七八九]{2,}', '%s', string) % tuple([x[0] for x in re.findall('[一二两三四五六七八九]{2,}', string)])
+    string = re.sub('[一二两三四五六七八九]十', '%s', string) % tuple([x[0] for x in re.findall('[一二两三四五六七八九]十', string)])
+    string = re.sub('十', '一', string)
+
     # 替换汉字数字成阿拉伯数字
     string = re.sub('一|Ⅰ|壹', '1', string)
-    string = re.sub('二|Ⅱ|贰', '2', string)
+    string = re.sub('二|Ⅱ|贰|两', '2', string)
     string = re.sub('三|Ⅲ|叄', '3', string)
     string = re.sub('四|Ⅳ|肆', '4', string)
     string = re.sub('五|Ⅴ|伍', '5', string)
@@ -216,6 +229,9 @@ def wash_data(string):
     string = re.sub('七|Ⅶ|柒', '7', string)
     string = re.sub('八|Ⅷ|捌', '8', string)
     string = re.sub('九|Ⅸ|玖', '9', string)
+
+    # string = re.sub('十', '1')
+
     string = re.sub('零', '0', string)
     # 处理汉字数字的进制单位
     pattern = re.compile(
